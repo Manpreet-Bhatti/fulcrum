@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 )
 
@@ -33,10 +35,24 @@ func main() {
 	}
 
 	fmt.Printf("⚖️  Fulcrum Load Balancer starting on port %d\n", config.LBPort)
-	fmt.Printf("👉 Configured Backends: %v\n", config.Backends)
+
+	targetURL := config.Backends[0]
+	parsedURL, err := url.Parse(targetURL)
+	if err != nil {
+		log.Fatalf("Invalid backend URL: %v", err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(parsedURL)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = parsedURL.Host
+	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Fulcrum is alive! Request received at %s\n", r.URL.Path)
+		fmt.Printf("[Fulcrum] Forwarding request -> %s\n", targetURL)
+
+		proxy.ServeHTTP(w, r)
 	})
 
 	listenAddr := fmt.Sprintf(":%d", config.LBPort)
