@@ -23,9 +23,9 @@ const RetryCtxKey contextKey = "retry"
 type Backend struct {
 	Name              string
 	URL               *url.URL
-	ReverseProxy      *httputil.ReverseProxy
+	ReverseProxy      *httputil.ReverseProxy `json:"-"`
 	Alive             bool
-	mux               sync.RWMutex
+	mux               sync.RWMutex `json:"-"`
 	ActiveConnections int64
 	TotalRequests     uint64
 	FailedRequests    uint64
