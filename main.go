@@ -15,10 +15,11 @@ import (
 )
 
 type Backend struct {
-	URL          *url.URL
-	ReverseProxy *httputil.ReverseProxy
-	Alive        bool
-	mux          sync.RWMutex
+	URL               *url.URL
+	ReverseProxy      *httputil.ReverseProxy
+	Alive             bool
+	mux               sync.RWMutex
+	ActiveConnections int64
 }
 
 func (backend *Backend) SetAlive(alive bool) {
@@ -42,28 +43,25 @@ func (serverPool *ServerPool) AddBackend(backend *Backend) {
 	serverPool.backends = append(serverPool.backends, backend)
 }
 
-func (serverPool *ServerPool) nextIndex() int {
-	return int(atomic.AddUint64(&serverPool.current, uint64(1)) % uint64(len(serverPool.backends)))
-}
+// Get server with the least number of active connections
+func (serverPool *ServerPool) GetNextPeerLeastConnections() *Backend {
+	var bestPeer *Backend = nil
+	var minConns int64 = -1
 
-// Return the next ALIVE backend using Round Robin
-func (serverPool *ServerPool) GetNextPeer() *Backend {
-	next := serverPool.nextIndex()
-	l := len(serverPool.backends) + next
+	for _, backend := range serverPool.backends {
+		if !backend.IsAlive() {
+			continue
+		}
 
-	for i := next; i < l; i++ {
-		idx := i % len(serverPool.backends)
+		conn := atomic.LoadInt64(&backend.ActiveConnections)
 
-		if serverPool.backends[idx].IsAlive() {
-			if i != next {
-				atomic.StoreUint64(&serverPool.current, uint64(idx))
-			}
-
-			return serverPool.backends[idx]
+		if bestPeer == nil || conn < minConns {
+			bestPeer = backend
+			minConns = conn
 		}
 	}
 
-	return nil
+	return bestPeer
 }
 
 func isBackendAlive(u *url.URL) bool {
@@ -189,10 +187,13 @@ func main() {
 	go serverPool.StartHealthCheck()
 
 	lbHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		peer := serverPool.GetNextPeer()
+		peer := serverPool.GetNextPeerLeastConnections()
 
 		if peer != nil {
+			atomic.AddInt64(&peer.ActiveConnections, 1)
+			defer atomic.AddInt64(&peer.ActiveConnections, -1)
 			peer.ReverseProxy.ServeHTTP(w, r)
+
 			return
 		}
 
