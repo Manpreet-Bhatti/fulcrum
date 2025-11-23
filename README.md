@@ -1,7 +1,5 @@
 # ⚖️ Fulcrum
 
-**A High-Performance, Self-Healing Layer 7 Load Balancer written in Go**
-
 Fulcrum is a reverse proxy and load balancer capable of distributing HTTP traffic across a cluster of backend servers. Built with a focus on concurrency control, retries (fault tolerance), and observability, it features active health checks, automatic failover retries, and a real-time analytics dashboard.
 
 ## 🚀 Key Features
