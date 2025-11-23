@@ -134,9 +134,17 @@ func main() {
 		Handler: middleware.LoggingMiddleware(lbHandler),
 	}
 
-	log.Printf("⚖️  Fulcrum Load Balancer starting on port %d\n", cfg.LBPort)
+	if cfg.TLSCert != "" && cfg.TLSKey != "" {
+		log.Printf("🔒 Secure Fulcrum LB started at :%d (HTTPS)\n", cfg.LBPort)
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
+		if err := server.ListenAndServeTLS(cfg.TLSCert, cfg.TLSKey); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Printf("⚖️  Fulcrum Load Balancer started at :%d (HTTP)\n", cfg.LBPort)
+
+		if err := server.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

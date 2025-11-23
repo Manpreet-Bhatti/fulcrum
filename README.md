@@ -10,6 +10,7 @@ Fulcrum is a reverse proxy and load balancer capable of distributing HTTP traffi
 - **Hybrid Health Checks:**
   - **Active:** Periodically pings backends via TCP to check connectivity.
   - **Passive (Circuit Breaker):** Instantly detects 5xx error spikes and temporarily removes unstable nodes from rotation.
+- **TLS Termination:** Offloads SSL/TLS encryption processing from backend servers, managing certificates at the entry point.
 - **Fault Tolerance & Retries:** Automatically retries failed requests on healthy backends using context-aware error handling.
 - **Live Dashboard:** A visualization of connection pools, error rates, and server status in real-time.
 - **Observability:** Custom middleware for detailed request logging (latency, status codes, method).
@@ -33,6 +34,7 @@ User Request  --->  [ FULCRUM LB (:8000) ]  --->  [ Backend A (:5001) ]
 **Prerequisites**
 
 - Go 1.21+
+- OpenSSL (optional, for generating self-signed certs)
 
 1. **Clone the repo**
 
@@ -41,11 +43,23 @@ git clone https://github.com/Manpreet-Bhatti/Fulcrum.git
 cd Fulcrum
 ```
 
-2. **Configure Backends**
+2. **Generate SSL Keys (Optional)**
+
+To enable HTTPS (TLS Termination), generate self-signed keys in the root folder:
+
+```bash
+openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
+  -keyout server.key -out server.crt \
+  -subj "/C=<country>/ST=<province/state>/L=<city>/O=<organization>/CN=localhost"
+```
+
+3. **Configure Backends**
 
 ```json
 {
-  "lb_port": 8000,
+  "lb_port": 8443,
+  "tls_cert": "server.crt",
+  "tls_key": "server.key",
   "backends": [
     {
       "name": "backend-1",
@@ -66,7 +80,7 @@ cd Fulcrum
 }
 ```
 
-3. **Start the Dummy Backend Cluster**
+4. **Start the Dummy Backend Cluster**
 
 This repo includes a helper tool to spin up test servers. Open 3 terminal tabs:
 
@@ -81,13 +95,23 @@ go run backend/main.go -port 5002 -name "backend-2"
 go run backend/main.go -port 5003 -name "backend-3"
 ```
 
-4. **Run Fulcrum**
+5. **Run Fulcrum**
 
 ```bash
 go run main.go
 ```
 
 ## 🎮 Usage & Demo
+
+**Send Secure Traffic**
+
+Since we are using a self-signed certificate, use curl -k (insecure mode) to verify the connection:
+
+```bash
+curl -k -v https://localhost:8443
+```
+
+*Observe the TLS handshake in the curl output, and the plain HTTP logs in the backend terminals.*
 
 **View Dashboard**
 

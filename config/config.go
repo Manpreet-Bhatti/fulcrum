@@ -13,6 +13,8 @@ type BackendConfig struct {
 
 type Config struct {
 	LBPort   int             `json:"lb_port"`
+	TLSCert  string          `json:"tls_cert"`
+	TLSKey   string          `json:"tls_key"`
 	Backends []BackendConfig `json:"backends"`
 }
 
