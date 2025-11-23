@@ -10,8 +10,10 @@ Fulcrum is a reverse proxy and load balancer capable of distributing HTTP traffi
 - **Hybrid Health Checks:**
   - **Active:** Periodically pings backends via TCP to check connectivity.
   - **Passive (Circuit Breaker):** Instantly detects 5xx error spikes and temporarily removes unstable nodes from rotation.
-- **TLS Termination:** Offloads SSL/TLS encryption processing from backend servers, managing certificates at the entry point.
-- **Fault Tolerance & Retries:** Automatically retries failed requests on healthy backends using context-aware error handling.
+- **Resilience & Security:**
+  - **TLS Termination:** Offloads SSL/TLS encryption processing from backend servers, managing certificates at the entry point.
+  - **Rate Limiting:** Implements a **Token Bucket** algorithm (per IP) to prevent DDoS attacks and "noisy neighbor" resource exhaustion.
+  - **Automatic Retries:** Seamlessly fails over to healthy backends if a connection is refused, transparent to the user.
 - **Live Dashboard:** A visualization of connection pools, error rates, and server status in real-time.
 - **Observability:** Custom middleware for detailed request logging (latency, status codes, method).
 - **Concurrency Safe:** Uses `sync/atomic` for lock-free counter increments and `sync.RWMutex` for safe state management.
@@ -41,6 +43,7 @@ User Request  --->  [ FULCRUM LB (:8000) ]  --->  [ Backend A (:5001) ]
 ```bash
 git clone https://github.com/Manpreet-Bhatti/Fulcrum.git
 cd Fulcrum
+go mod tidy
 ```
 
 2. **Generate SSL Keys (Optional)**
@@ -119,6 +122,16 @@ Open your browser to: http://localhost:8081
 
 - Watch **Active Requests** spike during load.
 - Observe **Failures** and **Error Rates** calculated in real-time.
+
+**Test Rate Limiting**
+
+Spam the server with requests:
+
+```bash
+for i in {1..25}; do curl -k -s -o /dev/null -w "%{http_code}\n" https://localhost:8443; done
+```
+
+*Result: You will see `200` responses followed by a stream of `429` errors once the token bucket is empty.*
 
 **Test Circuit Breaker**
 
