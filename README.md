@@ -4,12 +4,16 @@ Fulcrum is a reverse proxy and load balancer capable of distributing HTTP traffi
 
 ## 🚀 Key Features
 
-- **Intelligent Routing**: Implements the **Least Connections** strategy to optimize load distribution (with Round Robin fallback).
-- **Active Health Checks**: Periodically pings backends via TCP; automatically removes dead nodes from rotation and reintegrates them upon recovery.
-- **Fault Tolerance & Retries**: Automatically retries failed requests on healthy backends using context-aware error handling.
-- **Live Dashboard**: A visualization of connection pools, error rates, and server status in real-time.
-- **Observability**: Custom middleware for detailed request logging (latency, status codes, method).
-- **Concurrency Safe**: Uses `sync/atomic` for lock-free counter increments and `sync.RWMutex` for safe state management.
+- **Intelligent Routing:**
+  - **Weighted Round Robin:** Assigns traffic loads based on server capacity (weights).
+  - **Least Connections:** Dynamically routes traffic to the least busy server.
+- **Hybrid Health Checks:**
+  - **Active:** Periodically pings backends via TCP to check connectivity.
+  - **Passive (Circuit Breaker):** Instantly detects 5xx error spikes and temporarily removes unstable nodes from rotation.
+- **Fault Tolerance & Retries:** Automatically retries failed requests on healthy backends using context-aware error handling.
+- **Live Dashboard:** A visualization of connection pools, error rates, and server status in real-time.
+- **Observability:** Custom middleware for detailed request logging (latency, status codes, method).
+- **Concurrency Safe:** Uses `sync/atomic` for lock-free counter increments and `sync.RWMutex` for safe state management.
 
 ## 🛠️ Architecture
 
@@ -45,15 +49,18 @@ cd Fulcrum
   "backends": [
     {
       "name": "backend-1",
-      "url": "http://localhost:5001"
+      "url": "http://localhost:5001",
+      "weight": 3
     },
     {
       "name": "backend-2",
-      "url": "http://localhost:5002"
+      "url": "http://localhost:5002",
+      "weight": 1
     },
     {
       "name": "backend-3",
-      "url": "http://localhost:5003"
+      "url": "http://localhost:5003",
+      "weight": 1
     }
   ]
 }
@@ -82,26 +89,19 @@ go run main.go
 
 ## 🎮 Usage & Demo
 
-**Send Traffic**
-
-Send requests to the load balancer:
-
-```bash
-curl http://localhost:8000
-```
-
-*Observe the backend logs to see the traffic rotating*
-
 **View Dashboard**
 
-Open your browser and navigate to `http://localhost:8081`
+Open your browser to: http://localhost:8081
 
 - Watch **Active Requests** spike during load.
-- Kill a backend server and watch the status turn **OFFLINE**.
-- Restart the backend server and watch it self-heal to **ONLINE**.
+- Observe **Failures** and **Error Rates** calculated in real-time.
 
-**Simulate Failure (Retries)**
+**Test Circuit Breaker**
 
-1. Kill `backend-1`.
-2. Run `curl -v http://localhost:8000`.
-3. Fulcrum will detect the failure, log a retry, and serve the response from `backend-2` without the client noticing.
+1. Force a backend to return 500 errors (or kill the process).
+2. Fulcrum will detect the consecutive failures and mark the node **OFFLINE** immediately, bypassing the 20s health check interval.
+
+**Test Weighted Routing**
+
+1. Send a burst of requests (e.g., using `curl`).
+2. Observe that `backend-1` (Weight 3) receives approximately 3x more traffic than the backup nodes.
