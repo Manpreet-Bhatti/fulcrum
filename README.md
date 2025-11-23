@@ -106,7 +106,7 @@ go run main.go
 
 ## 🎮 Usage & Demo
 
-**Send Secure Traffic**
+### Send Secure Traffic
 
 Since we are using a self-signed certificate, use curl -k (insecure mode) to verify the connection:
 
@@ -116,14 +116,14 @@ curl -k -v https://localhost:8443
 
 *Observe the TLS handshake in the curl output, and the plain HTTP logs in the backend terminals.*
 
-**View Dashboard**
+### View Dashboard
 
 Open your browser to: http://localhost:8081
 
 - Watch **Active Requests** spike during load.
 - Observe **Failures** and **Error Rates** calculated in real-time.
 
-**Test Rate Limiting**
+### Test Rate Limiting
 
 Spam the server with requests:
 
@@ -133,12 +133,12 @@ for i in {1..25}; do curl -k -s -o /dev/null -w "%{http_code}\n" https://localho
 
 *Result: You will see `200` responses followed by a stream of `429` errors once the token bucket is empty.*
 
-**Test Circuit Breaker**
+### Test Circuit Breaker
 
 1. Force a backend to return 500 errors (or kill the process).
 2. Fulcrum will detect the consecutive failures and mark the node **OFFLINE** immediately, bypassing the 20s health check interval.
 
-**Test Weighted Routing**
+### Test Weighted Routing
 
 1. Send a burst of requests (e.g., using `curl`).
 2. Observe that `backend-1` (Weight 3) receives approximately 3x more traffic than the backup nodes.
