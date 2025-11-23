@@ -3,15 +3,18 @@
     "backends": [
         {
             "url": "http://localhost:5001",
-            "name": "Primary-Node"
+            "name": "Primary-Node",
+            "weight": 3
         },
         {
             "url": "http://localhost:5002",
-            "name": "Backup-Node-A"
+            "name": "Backup-Node-A",
+            "weight": 1
         },
         {
             "url": "http://localhost:5003",
-            "name": "Backup-Node-B"
+            "name": "Backup-Node-B",
+            "weight": 1
         }
     ]
 }

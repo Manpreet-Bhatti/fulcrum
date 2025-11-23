@@ -63,12 +63,21 @@ func main() {
 			w.Write([]byte("[Fulcrum] All backends failed"))
 		}
 
-		serverPool.AddBackend(&pool.Backend{
+		backend := &pool.Backend{
 			Name:         u.Name,
 			URL:          serverURL,
 			ReverseProxy: proxy,
 			Alive:        true,
-		})
+		}
+
+		weight := u.Weight
+		if weight <= 0 {
+			weight = 1
+		}
+
+		for i := 0; i < weight; i++ {
+			serverPool.AddBackend(backend)
+		}
 	}
 
 	go serverPool.StartHealthCheck()
