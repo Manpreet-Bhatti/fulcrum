@@ -59,7 +59,15 @@ func (s *ServerPool) ServeDashboard(w http.ResponseWriter, r *http.Request) {
 		
 		<div class="grid">`
 
+	seen := make(map[string]bool)
+
 	for _, backend := range s.Backends {
+		if seen[backend.URL.String()] {
+			continue
+		}
+
+		seen[backend.URL.String()] = true
+
 		alive := backend.IsAlive()
 		statusBadge := "<span class='badge up'>ONLINE</span>"
 

@@ -63,6 +63,35 @@ func main() {
 			w.Write([]byte("[Fulcrum] All backends failed"))
 		}
 
+		proxy.ModifyResponse = func(response *http.Response) error {
+			if response.StatusCode >= 500 {
+				backend := serverPool.GetBackend(serverURL)
+
+				if backend != nil {
+					failures := atomic.AddUint64(&backend.ConsecutiveFailures, 1)
+
+					if failures >= 3 {
+						log.Printf("🔥 CIRCUIT BREAKER TRIGGERED: %s marked down", serverURL)
+
+						backend.SetAlive(false)
+					}
+				}
+			} else {
+				backend := serverPool.GetBackend(serverURL)
+
+				if backend != nil {
+					atomic.StoreUint64(&backend.ConsecutiveFailures, 0)
+				}
+			}
+
+			return nil
+		}
+
+		weight := u.Weight
+		if weight == 0 {
+			weight = 1
+		}
+
 		backend := &pool.Backend{
 			Name:         u.Name,
 			URL:          serverURL,
@@ -70,14 +99,11 @@ func main() {
 			Alive:        true,
 		}
 
-		weight := u.Weight
-		if weight <= 0 {
-			weight = 1
-		}
-
 		for i := 0; i < weight; i++ {
 			serverPool.AddBackend(backend)
 		}
+
+		log.Printf("Configured backend: %s (Weight: %d)\n", serverURL, weight)
 	}
 
 	go serverPool.StartHealthCheck()

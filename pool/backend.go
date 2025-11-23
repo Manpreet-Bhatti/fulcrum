@@ -12,14 +12,15 @@ const RetryAttempts int = 3
 const RetryCtxKey contextKey = "retry"
 
 type Backend struct {
-	Name              string
-	URL               *url.URL
-	ReverseProxy      *httputil.ReverseProxy `json:"-"`
-	Alive             bool
-	Mux               sync.RWMutex `json:"-"`
-	ActiveConnections int64
-	TotalRequests     uint64
-	FailedRequests    uint64
+	Name                string
+	URL                 *url.URL
+	ReverseProxy        *httputil.ReverseProxy `json:"-"`
+	Alive               bool
+	Mux                 sync.RWMutex `json:"-"`
+	ActiveConnections   int64
+	TotalRequests       uint64
+	FailedRequests      uint64
+	ConsecutiveFailures uint64
 }
 
 func (backend *Backend) SetAlive(alive bool) {
