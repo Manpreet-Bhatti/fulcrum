@@ -22,13 +22,14 @@ Fulcrum is a reverse proxy and load balancer capable of distributing HTTP traffi
 
 Fulcrum acts as a Layer 7 Proxy. It accepts incoming traffic on a defined port, modifies the headers (X-Forwarded-For), and streams the request to a healthy backend.
 
-```
-User Request  --->  [ FULCRUM LB (:8443) ]  --->  [ Backend A (:5001) ]
-                           |                    |
-                           |                    --->  [ Backend B (:5002) ]
-                    [ Health Checker ]          |
-                           |                    --->  [ Backend C (:5003) ]
-                    [ Dashboard (:8081) ]
+```mermaid
+graph TD
+    User[User Request] --> LB[FULCRUM LB :8443]
+    LB --> BackendA[Backend A :5001]
+    LB --> BackendB[Backend B :5002]
+    LB --> BackendC[Backend C :5003]
+    HC[Health Checker] -.-> LB
+    Dashboard[Dashboard :8081] -.-> LB
 ```
 
 ## 📦 Getting Started
